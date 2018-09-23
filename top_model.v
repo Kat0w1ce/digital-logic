@@ -28,11 +28,13 @@ input wire reset,
 input wire signal,
 input wire cancel_flag,
 output reg work,
-input wire one,ten,
+input wire one,ten,t1,t2,
 output wire  [7:0]show,en,
 output reg hold_in,
 output reg [1:0] mode,
- output reg  [2:0] state    //todo
+ output reg  [2:0] state,    //todo
+ output wire [3:0] charge,
+ output wire fin
     );
  parameter A=3'b000;
  parameter B=3'b001;
@@ -40,20 +42,19 @@ output reg [1:0] mode,
  parameter D=3'b011;
  parameter E=3'b100;
  
- //reg  charge_flag;
- //wire fin;
+ reg  charge_flag;
+ 
  initial begin
  state<=A;
  work<=0;
-
  hold_in<=0;
  mode<=2'b00;
-// charge_flag<=0;
+ charge_flag<=0;
  end
 
     seg(clk,work,hold_in,show,en);
-    //compute(clk,mode,cancel_flag,fin);
- always@(posedge clk or posedge reset  or posedge one or posedge ten or posedge signal or posedge cancel_flag)begin
+    compute(clk,mode,one,t1,t2,cancel_flag,charge,fin);
+ always@(posedge clk or posedge reset  or posedge one or posedge ten or posedge signal or posedge cancel_flag or posedge fin)begin
     if(!reset) 
      begin
         state<=A;
@@ -61,9 +62,8 @@ output reg [1:0] mode,
         hold_in<=0;
         mode<=2'b00;
     end
-     else if(reset)
-      begin
-     /*case(state)
+     else begin
+     case(state)
         A:
             if(reset) begin
                 state<=B;
@@ -91,7 +91,7 @@ output reg [1:0] mode,
                 mode<=2'b01;
                 state<=D;
             end 
-            else if(one)begin
+            else if(ten)begin
                  mode<=2'b10;
                  state<=D;
             end
@@ -104,22 +104,19 @@ output reg [1:0] mode,
                 state<=C;
                 mode<=2'b00;
               end 
-       /* D:  
-            if(fin)
-              begin
-                charge_flag<=1;
-                state<=E;
-              end
-            else    begin
-                state<=D;
-            end 
-         E:
-            ;       
+        D:
+           if(fin)
+            begin
+//               charge_flag<=1;
+               state<=E;
+            end      
+            else begin
+                state<=D; 
+            end    
         default;      
      
-        endcase*/
+        endcase
     end
-    else ;
 end
     
 endmodule
@@ -177,29 +174,68 @@ always @(posedge clk)begin
 end
 endmodule
 
-/*module compute(
+module compute(
 input clk,
-input [1:0] state,
-//input one,t1,t2,
+input [1:0] mode,
+input one,t1,t2,
 input cancel_flag,
-//output reg [3:0] charge,
+output reg [3:0] charge,
 output reg fin
 );
-//reg [2:0]cnt;
+reg [4:0]cnt;
 initial begin
-//    cnt<=0;
+    cnt<=1;
     fin<=0;
-//    charge<=3'b0;
+    charge<=4'b0;
 end
 
 //always@(posedge clk or posedge t1 or posedge t2 or posedge one )
-always@(posedge clk or posedge cancel_flag)
+/*always@(posedge clk or posedge one)
 begin
-    if(cancel_flag)   
-        fin<=1;
-    else fin<=0;
+    if(mode==2'b01&&one)
+       begin
+        cnt<=cnt+1;
+        if(cnt>2)
+        begin
+            charge<=11;
+            fin<=1;
+        end
+        else fin<=0 ;    
+        end
+    else;
+end*/
+always@(posedge clk or posedge cancel_flag or posedge t1 or posedge t2 )
+begin
+    case(mode)
+    2'b01:   
+        if(cancel_flag)
+        begin
+            charge<=cnt;
+            fin<=1;
+        end 
+        else fin<=0; 
+        
+    2'b10:
+            if(cancel_flag)
+            begin
+                charge<=10;
+                fin<=1;
+            end else
+            if(t1)
+            begin
+                charge<=12;
+                fin<=1;
+            end else
+            if(t2)
+            begin
+                charge<=5;
+                fin<=1;
+            end
+            else fin<=0;
+      default:
+            fin<=0;
+    endcase
 end
 
 
-
-endmodule*/
+endmodule
