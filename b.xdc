@@ -20,8 +20,8 @@ set_property PACKAGE_PIN U9 [get_ports {reset}]
 set_property PACKAGE_PIN U8 [get_ports {signal}]					
 	set_property IOSTANDARD LVCMOS33 [get_ports {signal}]
 #Bank = 34, Pin name = IO_L23P_T3_34,						Sch name = SW2
-    #set_property PACKAGE_PIN R7 [get_ports {ten}]                    
-        #set_property IOSTANDARD LVCMOS33 [get_ports {ten}]
+    set_property PACKAGE_PIN R7 [get_ports {refresh}]                    
+        set_property IOSTANDARD LVCMOS33 [get_ports {refresh}]
 # LEDs
 #Bank = 34, Pin name = IO_L24N_T3_34,						Sch name = LED0
 set_property PACKAGE_PIN T8 [get_ports {work}]					

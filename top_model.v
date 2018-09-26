@@ -23,6 +23,7 @@
 
 
 module top_model(
+input wire refresh,
 input wire clk,
 input wire reset,
 input wire signal,
@@ -44,7 +45,6 @@ output wire overflow
  parameter C=3'b010;
  parameter D=3'b011;
  parameter E=3'b100;
- 
  //reg  charge_flag;
  
  initial begin
@@ -57,7 +57,7 @@ output wire overflow
 
     seg seg7(clk,work,hold_in,fin,mode,charge,cnt,show,en);
 //    compute com(clk,mode,one,t1,t2,cancel_flag,charge,fin);
-    compute p(reset,clk,mode,one,high,low,cancel_flag,charge,fin,overflow,cnt);
+    compute p(refresh,reset,clk,mode,one,high,low,cancel_flag,charge,fin,overflow,cnt);
  always@(posedge clk )//or posedge reset  or posedge one or posedge ten or posedge signal or posedge cancel_flag or posedge fin)begin
     begin
     if(!reset) 
@@ -84,7 +84,8 @@ output wire overflow
             if(signal) begin
                 hold_in<=1;           
                 state<=C;
-                mode[1:0]<=2'b00;           
+                mode[1:0]<=2'b00; 
+//                refresh<=0;          
             end
             else begin 
                state<=B;
@@ -118,8 +119,14 @@ output wire overflow
             else begin
                 state<=D; 
             end    
+         E:
+            if(refresh)
+                begin
+                   state<=B;
+                   hold_in<=0;
+                end
         default;      
-     
+        
         endcase
     end
 end
@@ -129,6 +136,7 @@ endmodule
 
 
 module compute(
+input wire refresh,
 input wire reset,
 input  wire clk,
 input wire [1:0] mode,
@@ -151,35 +159,40 @@ initial begin
 end
 
 //always@(posedge clk or posedge t1 or posedge t2 or posedge one )
-always@(posedge one or negedge reset)
+always@(posedge one or negedge reset or posedge refresh)
     begin
-        if(!reset)
+        if(!reset||refresh)
         begin
-            cnt=4'b1;
-            three=0;
-            overflow=0;
+             cnt=4'b1;
+             three=0;
+             overflow=0;
         end 
-        else 
-            if(mode==2'b01&&one)
+        /*else if(!reset||refresh)
+        begin
+         cnt=4'b1;
+         three=0;
+         overflow=0;
+        end */
+         else if(reset&&!refresh)
             begin
-                if(!overflow)
-                begin
-                    cnt=cnt+4'b1;
-                    if(cnt>2&&cnt<5)
-                        three=1;
-                    else if(cnt==5)
+                if(mode==2'b01&&one&&!fin)
+                   begin
+                    if(!overflow)
+                    begin
+                       cnt=cnt+4'b1;
+                       if(cnt>2&&cnt<5)
+                          three=1;
+                        else if(cnt==5)
                         overflow=1;
-                    else
-                        ;
-                end
-            else ;
-            end    
-      end     
-
+                    else;
+                     end
+                    end 
+            end
+         else;   
+     end       
 always@(posedge clk )//or posedge cancel_flag or posedge high or posedge low )
 begin
-    if(reset)
-    begin
+    if(reset&&!refresh)
         case(mode)
         2'b01:   
             if(cancel_flag&&!fin)
@@ -225,14 +238,24 @@ begin
                   end
                 else ;
              end   
-          default:;
-         endcase
-    end 
-    else begin
+        default:;
+        endcase
+      else if(!reset||refresh) 
+        begin
+        fin<=0;
+        charge<=0;
+        end
+      else if(!reset)
+         begin
+            fin<=0;
+            charge<=0;
+         end
+      else 
+        begin
          fin<=0;
          charge<=0;
          end
-    end
+end
 endmodule
 module seg(
 input wire clk,
@@ -281,6 +304,93 @@ always @(posedge clk)begin
                b<=8'b11101111;
                show<=8'b10001001;
            end
+           else if(work&&hold_in&&!fin)
+                  begin
+                        if(mode==2'b01)
+                           case(cnt)
+                               1:
+                                  if(times<25000)
+                                  begin
+                                       b<=8'b11101111;
+                                       show<=8'b11000000;
+                                  end 
+                                  else begin
+                                       b<=8'b11011111; 
+                                       show<=8'b01111001;
+                                  end
+                                2:    
+                                   if(times<25000)
+                                   begin
+                                       b<=8'b11101111;
+                                       show<=8'b11000000;
+                                   end 
+                                   else begin
+                                       b<=8'b11011111; 
+                                       show<=8'b00100100;
+                                   end
+                               3:    
+                                   if(times<25000)
+                                   begin
+                                       b<=8'b11101111;
+                                       show<=8'b11000000;
+                                   end 
+                                   else begin
+                                       b<=8'b11011111; 
+                                       show<=8'b00110000;
+                                   end  
+                                4:    
+                                   if(times<25000)
+                                   begin
+                                       b<=8'b11101111;
+                                       show<=8'b11000000;
+                                   end 
+                                   else begin
+                                       b<=8'b11011111; 
+                                       show<=8'b00011001;
+                                   end     
+                                5:    //5.0
+                                   if(times<25000)
+                                   begin
+                                       b<=8'b11101111;
+                                       show<=8'b11000000;
+                                   end 
+                                   else begin
+                                       b<=8'b11011111; 
+                                       show<=8'b00010010;
+                                   end 
+              
+                                 default:
+                                 begin
+                                       b<=8'b11111111;
+                                       show<=8'b11111111;
+                                       
+                                 end      
+                           endcase
+                          else if(mode==2'b11)
+                                begin
+                                    if(times<16000)
+                                     begin
+                                      b<=8'b11101111;
+                                      show<=8'b11000000;
+                                     end 
+                                     else if(times<33000) 
+                                     begin
+                                      b<=8'b11011111; 
+                                      show<=8'b01000000;          
+                                     end      
+                                     else  
+                                     begin
+                                      b<=8'b10111111; 
+                                      show<=8'b11111001;          
+                                     end            
+                                end
+                      
+                       else  
+                        begin
+                               b<=8'b11111111;
+                               show<=8'b11111111;
+                        end
+        end
         else if(work&&hold_in&&fin)
             begin
                 case(charge)
